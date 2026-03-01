@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Focus" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>Focus — To‑Do</title>
+
+<style>
+/* ── Variables ── */
+:root {
+  --bg:           #0a0a0a;
+  --bg-secondary: #141414;
+  --bg-elevated:  #1c1c1e;
+  --accent:       #f5e6c8;
+  --accent-dim:   rgba(245,230,200,0.14);
+  --accent-glow:  rgba(245,230,200,0.06);
+  --text-primary:   #f2f2f7;
+  --text-secondary: rgba(242,242,247,0.45);
+  --text-muted:     rgba(242,242,247,0.22);
+  --text-done:      rgba(242,242,247,0.28);
+  --border:       rgba(255,255,255,0.07);
+  --border-focus: rgba(245,230,200,0.4);
+  --danger:       #ff453a;
+  --font: -apple-system, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+  --ease-smooth: cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text-primary);
+  min-height:100dvh;
+  overscroll-behavior:none;
+  -webkit-tap-highlight-color:transparent;
+}
+ul,li{list-style:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input{font-family:inherit}
+::-webkit-scrollbar{width:0}
+
+/* ── HEADER ── */
+.header{
+  position:relative;
+  padding:calc(var(--safe-top) + 52px) 28px 0;
+  background:linear-gradient(165deg,#1a1408 0%,#0f0f0f 55%,var(--bg) 100%);
+  overflow:hidden;
+}
+.header::before{
+  content:'';
+  position:absolute;
+  top:-80px;right:-60px;
+  width:280px;height:280px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(245,230,200,0.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.header__inner{position:relative;z-index:1;padding-bottom:40px}
+.header__meta{display:flex;gap:8px;align-items:baseline;margin-bottom:6px}
+.header__day{
+  font-size:11px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent);opacity:.8;
+}
+.header__date{font-size:11px;color:var(--text-secondary);letter-spacing:.04em}
+.header__title{
+  font-size:clamp(48px,12vw,64px);
+  font-weight:700;
+  letter-spacing:-0.03em;
+  line-height:1;
+  background:linear-gradient(135deg,#f2f2f7 30%,var(--accent) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.header__subtitle{
+  margin-top:10px;font-size:14px;
+  color:var(--text-secondary);line-height:1.4;min-height:20px;
+}
+.header__wave{position:relative;height:32px;overflow:hidden}
+.header__wave::after{
+  content:'';position:absolute;bottom:0;left:-10%;
+  width:120%;height:64px;
+  background:var(--bg);
+  border-radius:50% 50% 0 0/100% 100% 0 0;
+}
+
+/* ── MAIN ── */
+.main{
+  padding:8px 20px calc(var(--safe-bottom) + 100px);
+  max-width:520px;margin:0 auto;
+}
+
+/* ── FILTRE ── */
+.filter{
+  display:flex;gap:6px;margin-bottom:24px;padding:4px;
+  background:var(--bg-elevated);
+  border-radius:var(--radius-xl);
+  border:1px solid var(--border);
+}
+.filter__btn{
+  flex:1;padding:8px 0;
+  border-radius:calc(var(--radius-xl) - 4px);
+  font-size:13px;font-weight:500;
+  color:var(--text-secondary);
+  transition:all 180ms var(--ease-smooth);
+}
+.filter__btn--active{
+  background:var(--bg-secondary);
+  color:var(--accent);
+  box-shadow:0 1px 8px rgba(0,0,0,.4);
+}
+
+/* ── LISTE ── */
+.task-list{display:flex;flex-direction:column;gap:10px}
+
+/* ── CARTE TÂCHE ── */
+.task-item{
+  display:flex;align-items:center;gap:14px;
+  padding:16px 18px;
+  background:var(--bg-elevated);
+  border-radius:var(--radius-md);
+  border:1px solid var(--border);
+  box-shadow:0 2px 20px rgba(0,0,0,.5);
+  transition:transform 180ms var(--ease-smooth),opacity 180ms;
+  cursor:pointer;position:relative;overflow:hidden;
+  animation:slide-in 320ms var(--ease-spring) both;
+}
+@keyframes slide-in{
+  from{opacity:0;transform:translateY(12px) scale(.97)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.task-item::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
+}
+.task-item:active{transform:scale(.985)}
+.task-item--done{opacity:.5;border-color:transparent}
+.task-item--done .task-item__text{text-decoration:line-through;color:var(--text-done)}
+
+/* Checkbox */
+.task-item__check{
+  width:24px;height:24px;min-width:24px;
+  border-radius:50%;
+  border:1.5px solid var(--border-focus);
+  display:flex;align-items:center;justify-content:center;
+  transition:all 180ms var(--ease-spring);
+  background:transparent;flex-shrink:0;
+}
+.task-item__check::after{
+  content:'';width:10px;height:6px;
+  border-left:1.5px solid var(--bg);
+  border-bottom:1.5px solid var(--bg);
+  transform:rotate(-45deg) scale(0) translateY(-1px);
+  transition:transform 180ms var(--ease-spring);
+  display:block;
+}
+.task-item--done .task-item__check{
+  background:var(--accent);border-color:var(--accent);
+  box-shadow:0 0 12px rgba(245,230,200,.25);
+}
+.task-item--done .task-item__check::after{
+  transform:rotate(-45deg) scale(1) translateY(-1px);
+}
+
+/* Texte */
+.task-item__text{
+  flex:1;font-size:15px;font-weight:400;
+  line-height:1.4;color:var(--text-primary);
+  transition:color 180ms;word-break:break-word;overflow-wrap:anywhere;
+}
+
+/* Actions */
+.task-item__actions{
+  display:flex;gap:4px;
+  opacity:0;transform:translateX(6px);
+  transition:opacity 180ms,transform 180ms;
+  pointer-events:none;
+}
+.task-item--open .task-item__actions{
+  opacity:1;transform:translateX(0);pointer-events:all;
+}
+.task-item__btn{
+  width:32px;height:32px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  transition:background 180ms,transform 180ms;
+}
+.task-item__btn:active{transform:scale(.88)}
+.task-item__btn--edit{background:rgba(245,230,200,.1);color:var(--accent)}
+.task-item__btn--delete{background:rgba(255,69,58,.12);color:var(--danger)}
+
+/* Suppression animée */
+.task-item--removing{
+  animation:slide-out 280ms var(--ease-smooth) forwards;
+}
+@keyframes slide-out{
+  to{opacity:0;transform:translateX(-20px) scale(.95);
+     max-height:0;margin:0;padding-top:0;padding-bottom:0}
+}
+
+/* ── ÉTAT VIDE ── */
+.empty-state{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:64px 24px;text-align:center;gap:16px;
+  opacity:0;transform:translateY(8px);
+  transition:opacity 320ms,transform 320ms;
+  pointer-events:none;
+}
+.empty-state.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+.empty-state__icon{
+  font-size:28px;color:var(--text-muted);
+  animation:spin-slow 8s linear infinite;display:block;
+}
+@keyframes spin-slow{to{transform:rotate(360deg)}}
+.empty-state__text{font-size:14px;color:var(--text-muted);line-height:1.6}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;
+  bottom:calc(var(--safe-bottom) + 28px);right:24px;
+  width:60px;height:60px;border-radius:50%;
+  background:var(--accent);color:#0a0a0a;
+  box-shadow:0 8px 32px rgba(0,0,0,.6),0 2px 8px rgba(245,230,200,.18);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;
+  transition:transform 180ms var(--ease-spring),box-shadow 180ms;
+  touch-action:manipulation;
+}
+.fab:active{transform:scale(.9)}
+.fab__icon{
+  font-size:32px;font-weight:200;line-height:1;
+  transition:transform 320ms var(--ease-spring);
+  display:block;margin-top:-2px;
+}
+.fab--close .fab__icon{transform:rotate(45deg)}
+
+/* ── BOTTOM SHEET ── */
+.sheet-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  z-index:200;opacity:0;pointer-events:none;
+  transition:opacity 320ms var(--ease-smooth);
+}
+.sheet-overlay.visible{opacity:1;pointer-events:all}
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg-elevated);
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+  border-top:1px solid var(--border);
+  padding:12px 24px calc(var(--safe-bottom) + 28px);
+  z-index:300;
+  transform:translateY(100%);
+  transition:transform 320ms var(--ease-spring);
+  box-shadow:0 -2px 40px rgba(0,0,0,.6);
+}
+.sheet.visible{transform:translateY(0)}
+.sheet__handle{
+  width:36px;height:4px;
+  background:rgba(255,255,255,.15);
+  border-radius:2px;margin:0 auto 20px;
+}
+.sheet__title{
+  font-size:22px;font-weight:700;
+  color:var(--text-primary);margin-bottom:20px;letter-spacing:-.01em;
+}
+.sheet__input{
+  width:100%;background:var(--bg-secondary);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:14px 16px;
+  font-size:16px;font-weight:400;
+  color:var(--text-primary);outline:none;
+  transition:border-color 180ms,box-shadow 180ms;
+  caret-color:var(--accent);margin-bottom:20px;
+}
+.sheet__input::placeholder{color:var(--text-muted)}
+.sheet__input:focus{
+  border-color:var(--border-focus);
+  box-shadow:0 0 0 3px var(--accent-glow);
+}
+.sheet__actions{display:flex;gap:10px}
+.sheet__btn{
+  flex:1;padding:14px;border-radius:var(--radius-md);
+  font-size:15px;font-weight:600;
+  transition:opacity 180ms,transform 180ms;touch-action:manipulation;
+}
+.sheet__btn:active{transform:scale(.96);opacity:.85}
+.sheet__btn--cancel{
+  background:var(--bg-secondary);
+  color:var(--text-secondary);border:1px solid var(--border);
+}
+.sheet__btn--save{background:var(--accent);color:#0a0a0a}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;
+  bottom:calc(var(--safe-bottom) + 104px);
+  left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(28,28,30,.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border);border-radius:100px;
+  padding:10px 20px;font-size:13px;font-weight:500;
+  color:var(--text-primary);white-space:nowrap;
+  opacity:0;pointer-events:none;
+  transition:opacity 180ms,transform 180ms;
+  z-index:500;box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+.toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Accessibilité ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Shake animation ── */
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%,60%{transform:translateX(-6px)}
+  40%,80%{transform:translateX(6px)}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header__inner">
+    <div class="header__meta">
+      <span class="header__day" id="js-day"></span>
+      <span class="header__date" id="js-date"></span>
+    </div>
+    <h1 class="header__title">Focus</h1>
+    <p class="header__subtitle" id="js-summary">Chargement…</p>
+  </div>
+  <div class="header__wave" aria-hidden="true"></div>
+</header>
+
+<!-- MAIN -->
+<main class="main">
+  <nav class="filter" role="tablist">
+    <button class="filter__btn filter__btn--active" data-filter="all"    role="tab" aria-selected="true">Toutes</button>
+    <button class="filter__btn"                     data-filter="active" role="tab" aria-selected="false">Actives</button>
+    <button class="filter__btn"                     data-filter="done"   role="tab" aria-selected="false">Terminées</button>
+  </nav>
+  <ul class="task-list" id="js-task-list" aria-live="polite"></ul>
+  <div class="empty-state" id="js-empty" aria-hidden="true">
+    <span class="empty-state__icon">✦</span>
+    <p class="empty-state__text">Aucune tâche pour l'instant.<br/>Appuyez sur <strong>+</strong> pour commencer.</p>
+  </div>
+</main>
+
+<!-- FAB -->
+<button class="fab" id="js-fab" aria-label="Ajouter une tâche">
+  <span class="fab__icon" aria-hidden="true">+</span>
+</button>
+
+<!-- BOTTOM SHEET -->
+<div class="sheet-overlay" id="js-overlay" aria-hidden="true"></div>
+<div class="sheet" id="js-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="sheet__handle" aria-hidden="true"></div>
+  <h2 class="sheet__title" id="js-sheet-title">Nouvelle tâche</h2>
+  <input
+    class="sheet__input" id="js-input"
+    type="text" placeholder="Que faut-il faire ?"
+    maxlength="120" autocomplete="off"
+  />
+  <div class="sheet__actions">
+    <button class="sheet__btn sheet__btn--cancel" id="js-cancel">Annuler</button>
+    <button class="sheet__btn sheet__btn--save"   id="js-save">Enregistrer</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="js-toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* ── État ── */
+let tasks = [];
+let currentFilter = 'all';
+let editingId = null;
+let openActionId = null;
+const STORAGE_KEY = 'focus_tasks_v1';
+
+/* ── Storage ── */
+function loadTasks() {
+  try { tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { tasks = []; }
+}
+function saveTasks() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+  catch { showToast('Stockage plein !'); }
+}
+
+/* ── Utilitaires ── */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function filteredTasks() {
+  if (currentFilter === 'active') return tasks.filter(t => !t.done);
+  if (currentFilter === 'done')   return tasks.filter(t => t.done);
+  return [...tasks];
+}
+
+function updateDate() {
+  const now = new Date();
+  document.getElementById('js-day').textContent =
+    now.toLocaleDateString('fr-FR', { weekday: 'long' });
+  document.getElementById('js-date').textContent =
+    now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function updateSummary() {
+  const total  = tasks.length;
+  const done   = tasks.filter(t => t.done).length;
+  const active = total - done;
+  const el = document.getElementById('js-summary');
+  if (total === 0)    el.textContent = 'Aucune tâche pour l\'instant.';
+  else if (active === 0) el.textContent = 'Tout est fait ✦ Bravo !';
+  else el.textContent = `${active} tâche${active > 1 ? 's' : ''} à faire · ${done} terminée${done > 1 ? 's' : ''}`;
+}
+
+/* ── Rendu ── */
+function createTaskElement(task) {
+  const li = document.createElement('li');
+  li.className = 'task-item' + (task.done ? ' task-item--done' : '');
+  li.dataset.id = task.id;
+
+  // Checkbox
+  const check = document.createElement('button');
+  check.className = 'task-item__check';
+  check.setAttribute('aria-label', task.done ? 'Marquer active' : 'Marquer terminée');
+
+  // Texte
+  const text = document.createElement('span');
+  text.className = 'task-item__text';
+  text.textContent = task.text;
+
+  // Actions
+  const actions = document.createElement('div');
+  actions.className = 'task-item__actions';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'task-item__btn task-item__btn--edit';
+  editBtn.setAttribute('aria-label', 'Modifier');
+  editBtn.textContent = '✎';
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'task-item__btn task-item__btn--delete';
+  delBtn.setAttribute('aria-label', 'Supprimer');
+  delBtn.textContent = '✕';
+
+  actions.append(editBtn, delBtn);
+  li.append(check, text, actions);
+
+  /* Événements */
+  check.addEventListener('click', e => { e.stopPropagation(); toggleTask(task.id); });
+  editBtn.addEventListener('click', e => { e.stopPropagation(); openSheet(task.id); });
+  delBtn.addEventListener('click',  e => { e.stopPropagation(); removeTask(task.id); });
+  li.addEventListener('click', e => {
+    if ([check, editBtn, delBtn].includes(e.target)) return;
+    toggleActions(task.id);
+  });
+
+  return li;
+}
+
+function render() {
+  const list  = document.getElementById('js-task-list');
+  const empty = document.getElementById('js-empty');
+  const visible = filteredTasks();
+  list.innerHTML = '';
+
+  if (visible.length === 0) {
+    empty.classList.add('visible');
+    empty.setAttribute('aria-hidden', 'false');
+  } else {
+    empty.classList.remove('visible');
+    empty.setAttribute('aria-hidden', 'true');
+    visible.forEach(t => list.appendChild(createTaskElement(t)));
+  }
+
+  // Ré-ouvrir les actions si besoin
+  if (openActionId) {
+    const el = list.querySelector(`[data-id="${openActionId}"]`);
+    if (el) el.classList.add('task-item--open');
+  }
+
+  updateSummary();
+}
+
+/* ── Logique métier ── */
+function addTask(text) {
+  if (!text.trim()) return;
+  tasks.unshift({ id: uid(), text: text.trim(), done: false, createdAt: Date.now() });
+  saveTasks(); render(); showToast('Tâche ajoutée ✦');
+}
+
+function updateTask(id, text) {
+  if (!text.trim()) return;
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.text = text.trim(); saveTasks(); render(); showToast('Tâche modifiée'); }
+}
+
+function toggleTask(id) {
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.done = !t.done; saveTasks(); render(); }
+}
+
+function removeTask(id) {
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (el) {
+    el.classList.add('task-item--removing');
+    el.addEventListener('animationend', () => {
+      tasks = tasks.filter(t => t.id !== id);
+      if (openActionId === id) openActionId = null;
+      saveTasks(); render();
+    }, { once: true });
+  } else {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks(); render();
+  }
+  showToast('Tâche supprimée');
+}
+
+function toggleActions(id) {
+  const list = document.getElementById('js-task-list');
+  if (openActionId && openActionId !== id) {
+    const prev = list.querySelector(`[data-id="${openActionId}"]`);
+    if (prev) prev.classList.remove('task-item--open');
+  }
+  const el = list.querySelector(`[data-id="${id}"]`);
+  if (openActionId === id) {
+    if (el) el.classList.remove('task-item--open');
+    openActionId = null;
+  } else {
+    if (el) el.classList.add('task-item--open');
+    openActionId = id;
+  }
+}
+
+/* ── Bottom Sheet ── */
+const sheet   = document.getElementById('js-sheet');
+const overlay = document.getElementById('js-overlay');
+const input   = document.getElementById('js-input');
+const fab     = document.getElementById('js-fab');
+
+function openSheet(taskId = null) {
+  editingId = taskId;
+  document.getElementById('js-sheet-title').textContent =
+    taskId ? 'Modifier la tâche' : 'Nouvelle tâche';
+  input.value = taskId ? (tasks.find(t => t.id === taskId)?.text || '') : '';
+  sheet.classList.add('visible');   sheet.setAttribute('aria-hidden','false');
+  overlay.classList.add('visible'); overlay.setAttribute('aria-hidden','false');
+  fab.classList.add('fab--close');
+  setTimeout(() => input.focus(), 350);
+}
+
+function closeSheet() {
+  sheet.classList.remove('visible');   sheet.setAttribute('aria-hidden','true');
+  overlay.classList.remove('visible'); overlay.setAttribute('aria-hidden','true');
+  fab.classList.remove('fab--close');
+  editingId = null; input.blur();
+}
+
+function saveSheet() {
+  const text = input.value.trim();
+  if (!text) {
+    input.style.animation = 'none';
+    input.offsetHeight; // reflow
+    input.style.animation = 'shake 300ms ease';
+    return;
+  }
+  editingId ? updateTask(editingId, text) : addTask(text);
+  closeSheet();
+}
+
+fab.addEventListener('click', () =>
+  sheet.classList.contains('visible') ? closeSheet() : openSheet()
+);
+document.getElementById('js-cancel').addEventListener('click', closeSheet);
+document.getElementById('js-save').addEventListener('click', saveSheet);
+overlay.addEventListener('click', closeSheet);
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveSheet();
+  if (e.key === 'Escape') closeSheet();
+});
+
+/* ── Filtres ── */
+document.querySelectorAll('.filter__btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter__btn').forEach(b => {
+      b.classList.remove('filter__btn--active');
+      b.setAttribute('aria-selected','false');
+    });
+    btn.classList.add('filter__btn--active');
+    btn.setAttribute('aria-selected','true');
+    currentFilter = btn.dataset.filter;
+    openActionId = null;
+    render();
+  });
+});
+
+/* ── Toast ── */
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('js-toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('visible'), 2200);
+}
+
+/* ── Fermer actions au clic extérieur ── */
+document.addEventListener('click', e => {
+  if (!openActionId) return;
+  const el = document.querySelector(`[data-id="${openActionId}"]`);
+  if (el && !el.contains(e.target)) {
+    el.classList.remove('task-item--open');
+    openActionId = null;
+  }
+});
+
+/* ── Init ── */
+loadTasks();
+updateDate();
+render();
+</script>
+</body>
+</html>

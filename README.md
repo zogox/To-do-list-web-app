@@ -28,7 +28,7 @@ This project was developed with the help of AI tools (such as ChatGPT) for:
 * debugging code
 * improving structure
 
-Not all code was reviewed and modified by myself as part of the learning process.
+Not all code was reviewed and modified by myself.
 
 ## 👤 Author
 
